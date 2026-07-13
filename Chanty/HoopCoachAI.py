@@ -80,6 +80,18 @@ def analizar_postura(frame, resultados):
     cv2.putText(frame, f'Ultimo release: {int(angulo_liberacion)}', (50, 130), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2)
     cv2.putText(frame, f'Rodilla: {int(angulo_rodilla)}', (50, 170), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 200, 255), 2)
 
+    if angulo_rodilla > 170:
+        texto_feedback = "¡FLEXIONA MAS LAS RODILLAS!"
+        color_feedback = (0, 0, 255) 
+    elif angulo_rodilla > 150:
+        texto_feedback = "¡BUENA FLEXION!"
+        color_feedback = (0, 255, 255)
+    else:
+        texto_feedback = "PREPARANDO TIRO..."
+        color_feedback = (0, 255, 255)
+
+    cv2.putText(frame, texto_feedback, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color_feedback, 2)
+
     return frame
 
 def detectar_balon(frame):
@@ -101,7 +113,7 @@ while True:
     bx, by = detectar_balon(frame)
     cv2.circle(frame, (bx, by), 12, (0, 165, 255), cv2.FILLED)
 
-    cv2.putText(frame, f'frame: {contador}', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    # quite el contador de frames para limpiar mas la pantalla.
     cv2.imshow("HoopCoach AI", frame)
 
     if cv2.waitKey(1) == ord('q'):
