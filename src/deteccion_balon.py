@@ -31,8 +31,16 @@ while True:
         cv2.circle(frame, (int(x), int(y)), 5, (0, 255, 0), -1)
         print(f"Balon detectado en la posicion X: {int(x)}, {int(y)}")
         puntos_trayectoria.append((int(x), int(y)))
-        
-       
+    
+    if len(puntos_trayectoria) > 20:
+        puntos_trayectoria.pop(0)
+
+    for i in range(1, len(puntos_trayectoria)):
+        if puntos_trayectoria[i - 1] is None or puntos_trayectoria[i] is None:
+            continue
+        cv2.line(frame, puntos_trayectoria[i - 1], puntos_trayectoria[i], (0, 0, 255), 3)
+
+
         
 
 cap.release()
