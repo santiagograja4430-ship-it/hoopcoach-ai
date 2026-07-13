@@ -116,5 +116,3 @@ if historial_angulos:
     print(f"Angulo promedio de liberacion: {promedio:.1f}")
 else:
     print("No se detectaron tiros en esta sesion.")
-        
-    
