@@ -18,10 +18,10 @@ tiempo_ultimo_tiro = 0
 angulo_maximo_subida = 0
 mensaje_mostrado = True
 
-def calcular_angulo(hombro, codo, muneca):
+def calcular_angulo(a, b, c):
     angulo = math.degrees(
-        math.atan2(muneca.y - codo.y, muneca.x - codo.x) -
-        math.atan2(hombro.y - codo.y, hombro.x - codo.x)
+        math.atan2(c.y - b.y, c.x - b.x) -
+        math.atan2(a.y - b.y, a.x - b.x)
     )
     angulo = abs(angulo)
     if angulo > 180:
@@ -29,12 +29,18 @@ def calcular_angulo(hombro, codo, muneca):
     return angulo
 
 def analizar_postura(frame, resultados):
-    global anterior_y, subiendo, tiempo_ultimo_tiro, angulo_liberacion, historial_angulos, mensaje_mostrado, angulo_maximo_subida
+    global anterior_y, subiendo, tiempo_ultimo_tiro, angulo_liberacion
+    global historial_angulos, mensaje_mostrado, angulo_maximo_subida
+
     mp_dibujo.draw_landmarks(frame, resultados.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
     muneca = resultados.pose_landmarks.landmark[16]
     codo = resultados.pose_landmarks.landmark[14]
     hombro = resultados.pose_landmarks.landmark[12]
+
+    cadera = resultados.pose_landmarks.landmark[24]
+    rodilla = resultados.pose_landmarks.landmark[26]
+    tobillo = resultados.pose_landmarks.landmark[28]
 
     if muneca.visibility > 0.5 and codo.visibility > 0.5 and hombro.visibility > 0.5:
         if not mensaje_mostrado:
@@ -43,10 +49,12 @@ def analizar_postura(frame, resultados):
 
     else:
         if mensaje_mostrado:
-            print("Puntos perdidos: No se encuentra el brazo")
+            print("Puntos perdidos: No se encuentra el brazo2")
             mensaje_mostrado = False
 
     angulo = calcular_angulo(hombro, codo, muneca)
+    angulo_rodilla = calcular_angulo(cadera, rodilla, tobillo)
+
     h, w, _= frame.shape
     cx, cy = int(muneca.x * w), int(muneca.y * h)
 
@@ -61,7 +69,7 @@ def analizar_postura(frame, resultados):
             if angulo_maximo_subida > 140:
                 angulo_liberacion = angulo_maximo_subida
                 historial_angulos.append(angulo_liberacion)
-                tiempo_ultimo_tiro = time.time ()
+                tiempo_ultimo_tiro = time.time()
             subiendo = False
             angulo_maximo_subida = 0
     anterior_y = muneca.y
@@ -70,6 +78,7 @@ def analizar_postura(frame, resultados):
     cv2.putText(frame, f'Angulo: {int(angulo)}', (50, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
     cv2.putText(frame, f'Muneca: {cx}', (cx, cy - 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 2)
     cv2.putText(frame, f'Ultimo release: {int(angulo_liberacion)}', (50, 130), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2)
+    cv2.putText(frame, f'Rodilla: {int(angulo_rodilla)}', (50, 170), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 200, 255), 2)
 
     return frame
 
@@ -92,7 +101,7 @@ while True:
     bx, by = detectar_balon(frame)
     cv2.circle(frame, (bx, by), 12, (0, 165, 255), cv2.FILLED)
 
-    cv2.putText(frame, f'Frame: {contador}', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    cv2.putText(frame, f'frame: {contador}', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     cv2.imshow("HoopCoach AI", frame)
 
     if cv2.waitKey(1) == ord('q'):
@@ -107,3 +116,5 @@ if historial_angulos:
     print(f"Angulo promedio de liberacion: {promedio:.1f}")
 else:
     print("No se detectaron tiros en esta sesion.")
+        
+    
