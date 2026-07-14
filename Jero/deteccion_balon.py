@@ -21,23 +21,26 @@ while True:
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    naranja_bajo = np.array([5, 80, 80])
-    naranja_alto = np.array([28, 255, 255])
+    naranja_bajo = np.array([10, 135, 135])
+    naranja_alto = np.array([25, 255, 255])
 
     mascara = cv2.inRange(hsv, naranja_bajo, naranja_alto)
 
- 
+    
+   
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
     contornos, _ = cv2.findContours(mascara, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    detectado = False
+
     if len(contornos) > 0:
         c = max(contornos, key=cv2.contourArea)
         ((x, y), radio) = cv2.minEnclosingCircle(c)
-
-        if radio > 5:
-
+        
+        if radio > 15:
+            detectado = True
             cv2.circle(frame, (int(x), int(y)), int(radio), (0, 0, 255), 2)
             cv2.circle(frame, (int(x), int(y)), 5, (0, 255, 0), -1)
 
@@ -51,31 +54,27 @@ while True:
             
             if ultimo_x is not None and dt > 0:
                 distancia = ((x - ultimo_x)**2 + (y - ultimo_y)**2)**0.5
-                
-                if distancia > 6:
+               
+
+                if distancia > 5:
                     velocidad = distancia / dt
                 else:
                     velocidad = 0
-                    
+   
                 cv2.putText(frame, f"Vel: {int(velocidad)} px/s", (int(x) - 50, int(y) - int(radio) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
 
             else: 
-                cv2.putText(frame, "Vel 0 px/s", (int(x) - 50, int (radio) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
-
+                cv2.putText(frame, "Vel 0 px/s", (int(x) - 50, int(y) - int(radio) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
             ultimo_x, ultimo_y = x, y
-        
-        else:
-            puntos_trayectoria.append(None)
-            ultimo_x, ultimo_y = None, None
-
-    else: 
+            
+    if not detectado:
         puntos_trayectoria.append(None)
         ultimo_x, ultimo_y = None, None
+        
 
     ultimo_tiempo = time.time()
 
-    
-    if len(puntos_trayectoria) > 20:
+    if len(puntos_trayectoria) > 25:
         puntos_trayectoria.pop(0)
 
     for i in range(1, len(puntos_trayectoria)):
