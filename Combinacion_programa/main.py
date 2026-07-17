@@ -13,13 +13,16 @@ anterior_y = None
 subiendo = False
 angulo_liberacion = 0
 historial_angulos = []
-tiempo_ultimo_tiro = 0 
+tiempo_ultimo_tiro = 0
 angulo_maximo_subida = 0
 mensaje_mostrado = True
 
 puntos_trayectoria = []
-naranja_bajo = np.array([5, 100, 100])
-naranja_alto = np.array([15, 255, 255])
+ultimo_tiempo_balon = time.time()
+ultimo_x, ultimo_y = None, None
+
+naranja_bajo = np.array([10, 135, 135])
+naranja_alto = np.array([25, 255, 255])
 
 def calcular_angulo(a, b, c):
     angulo = math.degrees(
@@ -50,7 +53,7 @@ def analizar_postura(frame, resultados):
             mensaje_mostrado = True
     else:
         if mensaje_mostrado:
-            print("Puntos perdidos: No se encuentra el brazo2")
+            print("Puntos perdidos: No se encuentra el brazo")
             mensaje_mostrado = False
 
     angulo = calcular_angulo(hombro, codo, muneca)
@@ -64,16 +67,14 @@ def analizar_postura(frame, resultados):
         if (anterior_y - muneca.y) > umbral:
             subiendo = True
             angulo_maximo_subida = max(angulo_maximo_subida, angulo)
-
         if (muneca.y - anterior_y) > umbral and subiendo and (time.time() - tiempo_ultimo_tiro) > 1.0:
-            print(f"Posible tiro, angulo maximo alcanzado: {int(angulo_maximo_subida)}")
+            print("Posible tiro, angulo maximo alcanzado: {int(angulo_maximo_subida)}")
             if angulo_maximo_subida > 140:
                 angulo_liberacion = angulo_maximo_subida
                 historial_angulos.append(angulo_liberacion)
                 tiempo_ultimo_tiro = time.time()
             subiendo = False
             angulo_maximo_subida = 0
-
     anterior_y = muneca.y
 
     cv2.circle(frame, (cx, cy), 15, (255, 0, 0), cv2.FILLED)
@@ -81,24 +82,68 @@ def analizar_postura(frame, resultados):
     cv2.putText(frame, f'Muneca: {cx}', (cx, cy - 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 2)
     cv2.putText(frame, f'Ultimo release: {int(angulo_liberacion)}', (50, 130), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2)
     cv2.putText(frame, f'Rodilla: {int(angulo_rodilla)}', (50, 170), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 200, 255), 2)
+
+    if angulo_rodilla > 170:
+        texto_feedback = "¡FLEXIONA MAS LAS RODILLAS!"
+        color_feedback = (0, 0, 255)
+    elif angulo_rodilla > 150:
+        texto_feedback = "¡BUENA FLEXION!"
+        color_feedback = (0, 255, 255)
+    else:
+        texto_feedback = "PREPARANDO TIRO..."
+        color_feedback = (0, 255, 255)
+
+    cv2.putText(frame, texto_feedback, (50, 210), cv2.FONT_HERSHEY_SIMPLEX, 1, color_feedback, 2)
+
     return frame
 
 def detectar_balon_jeronimo(frame):
-    global puntos_trayectoria
+    global puntos_trayectoria, ultimo_tiempo_balon, ultimo_x, ultimo_y
 
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     mascara = cv2.inRange(hsv, naranja_bajo, naranja_alto)
     contornos, _ = cv2.findContours(mascara, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+    detectado = False
+    
     if len(contornos) > 0:
         c = max(contornos, key=cv2.contourArea)
         ((x, y), radio) = cv2.minEnclosingCircle(c)
 
-        if radio > 10:
+        if radio > 15:
+            detectado = True
             cv2.circle(frame, (int(x), int(y)), int(radio), (0, 0, 255), 2)
             cv2.circle(frame, (int(x), int(y)), 5, (0, 255, 0), -1)
-            print(f"Balon detectado en la posicion X: {int(x)}, {int(y)}")
             puntos_trayectoria.append((int(x), int(y)))
+
+            tiempo_actual = time.time()
+            dt = tiempo_actual - ultimo_tiempo_balon
+
+            if ultimo_x is not None and dt > 0:
+                distancia = ((x - ultimo_x) ** 2 + (y- ultimo_y) ** 2) ** 0.5
+                velocidad = distancia / dt if distancia > 5 else 0
+                cv2.putText(frame, f"Vel: {int(velocidad)} px/s", (int(x) - 50, int(y) - int(radio) - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+            else:
+                cv2.putText(frame, "Vel: 0 px/s", (int(x) - 50, int(y) - int(radio) - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+
+            ultimo_x, ultimo_y = x, y
+
+    if not detectado:
+        puntos_trayectoria.append(None)
+        ultimo_x, ultimo_y = None, None
+
+    ultimo_tiempo_balon = time.time()
+
+    if len(puntos_trayectoria) > 25:
+        puntos_trayectoria.pop(0)
+
+    for i in range(1, len(puntos_trayectoria)):
+        if puntos_trayectoria[i - 1] is None or puntos_trayectoria[i] is None:
+            continue
+        cv2.line(frame, puntos_trayectoria[i - 1], puntos_trayectoria[i], (0, 0, 255), 3)
+
     return frame
 
 camara = cv2.VideoCapture(0)
@@ -119,8 +164,6 @@ while True:
 
     frame = detectar_balon_jeronimo(frame)
 
-    cv2.putText(frame, f'frame: {contador}', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
     cv2.imshow("HoopCoach AI - Sistema Integrado", frame)
 
     if cv2.waitKey(1) == ord('q'):
@@ -131,7 +174,7 @@ cv2.destroyAllWindows()
 
 if historial_angulos:
     promedio = sum(historial_angulos) / len(historial_angulos)
-    print(f"\n--- ESTADÍSTICAS DE TIRO ---")
+    print(f"\n--- ESTADISTICAS DE TIRO ---")
     print(f"Tiros detectados: {len(historial_angulos)}")
     print(f"Angulo promedio de liberacion: {promedio:.1f}")
 else:
