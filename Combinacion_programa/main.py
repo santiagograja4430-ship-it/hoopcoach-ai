@@ -68,7 +68,7 @@ def analizar_postura(frame, resultados):
             subiendo = True
             angulo_maximo_subida = max(angulo_maximo_subida, angulo)
         if (muneca.y - anterior_y) > umbral and subiendo and (time.time() - tiempo_ultimo_tiro) > 1.0:
-            print("Posible tiro, angulo maximo alcanzado: {int(angulo_maximo_subida)}")
+            print(f"Posible tiro, angulo maximo alcanzado: {int(angulo_maximo_subida)}")
             if angulo_maximo_subida > 140:
                 angulo_liberacion = angulo_maximo_subida
                 historial_angulos.append(angulo_liberacion)
