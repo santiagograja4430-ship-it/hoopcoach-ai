@@ -17,11 +17,20 @@ historial_angulos = []
 tiempo_ultimo_tiro = 0
 angulo_maximo_subida = 0
 mensaje_mostrado = True
+postura_valida = False
+mensaje_postura = ""
+
+CONSEJOS = {
+    "rodilla": "Flexiona mas las rodillas",
+    "codo": "Ajusta el codo (entre 80 y 110 grados)",
+    "espalda": "Mantén mas la espalda recta",
+    "hombro": "Sube mas el brazo antes de tirar",
+}
 
 def calcular_angulo(a, b, c):
     angulo = math.degrees(
         math.atan2(c.y - b.y, c.x - b.x) -
-        math.atan2(a.y - b.y, a.x - b.x)
+        math.atan2(a.y, a.x - b.x)
     )
     angulo = abs(angulo)
     if angulo > 180:
@@ -31,13 +40,13 @@ def calcular_angulo(a, b, c):
 def analizar_postura(frame, resultados):
     global anterior_y, subiendo, tiempo_ultimo_tiro, angulo_liberacion
     global historial_angulos, mensaje_mostrado, angulo_maximo_subida
+    global postura_valida, mensaje_postura
 
     mp_dibujo.draw_landmarks(frame, resultados.pose_landmarks, mp_pose.POSE_CONNECTIONS)
 
     muneca = resultados.pose_landmarks.landmark[16]
     codo = resultados.pose_landmarks.landmark[14]
     hombro = resultados.pose_landmarks.landmark[12]
-
     cadera = resultados.pose_landmarks.landmark[24]
     rodilla = resultados.pose_landmarks.landmark[26]
     tobillo = resultados.pose_landmarks.landmark[28]
@@ -46,56 +55,67 @@ def analizar_postura(frame, resultados):
         if not mensaje_mostrado:
             print("Brazo detectado")
             mensaje_mostrado = True
-
     else:
         if mensaje_mostrado:
-            print("Puntos perdidos: No se encuentra el brazo2")
+            print("Puntos perdidos: No se encuentra el brazo")
             mensaje_mostrado = False
 
     angulo = calcular_angulo(hombro, codo, muneca)
     angulo_rodilla = calcular_angulo(cadera, rodilla, tobillo)
+    angulo_espalda = calcular_angulo(rodilla, cadera, hombro)
+    angulo_hombro = calcular_angulo(cadera, hombro, codo)
 
-    h, w, _= frame.shape
+    h, w, _ = frame.shape
     cx, cy = int(muneca.x * w), int(muneca.y * h)
-
     umbral = 0.04
 
     if anterior_y is not None:
         if (anterior_y - muneca.y) > umbral:
+            if not subiendo:
+                rodilla_ok = 150 <= angulo_rodilla <= 170
+                codo_ok = 80 <= angulo >= 110
+                espalda_ok = angulo_espalda >= 150
+                hombro_ok = 70 <= angulo_hombro <= 100
+                postura_valida = rodilla_ok and codo_ok and espalda_ok and hombro_ok
+
+                fallos = []
+                if not rodilla_ok:
+                    fallos.append("rodilla")
+                if not codo_ok:
+                    fallos.append("codo")
+                if not espalda_ok:
+                    fallos.append("espalda")
+                if not hombro_ok:
+                    fallos.append("hombro")
+
+                if postura_valida:
+                    mensaje_postura = "Postura OK"
+                else:
+                    mensaje_postura = " | ".join(CONSEJOS[f] for f in fallos)
+
             subiendo = True
             angulo_maximo_subida = max(angulo_maximo_subida, angulo)
+
         if (muneca.y - anterior_y) > umbral and subiendo and (time.time() - tiempo_ultimo_tiro) > 1.0:
-            print(f"Posible tiro, angulo maximo alcanzado: {int(angulo_maximo_subida)}")
-            if angulo_maximo_subida > 140:
+            print(f"Posible tiro, angulo maximo alcanzo: {int(angulo_maximo_subida)}")
+            if angulo_maximo_subida > 140 and postura_valida:
                 angulo_liberacion = angulo_maximo_subida
                 historial_angulos.append(angulo_liberacion)
                 tiempo_ultimo_tiro = time.time()
+                print("Tiro contado")
+            elif angulo_maximo_subida > 140 and not postura_valida:
+                print("Tiro NO contado: postura incorrecta")
             subiendo = False
             angulo_maximo_subida = 0
     anterior_y = muneca.y
 
     cv2.circle(frame, (cx, cy), 15, (255, 0, 0), cv2.FILLED)
-    cv2.putText(frame, f'Angulo: {int(angulo)}', (50, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-    cv2.putText(frame, f'Muneca: {cx}', (cx, cy - 20), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 2)
-    cv2.putText(frame, f'Ultimo release: {int(angulo_liberacion)}', (50, 130), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2)
-    cv2.putText(frame, f'Rodilla: {int(angulo_rodilla)}', (50, 170), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 200, 255), 2)
+    cv2.putText(frame, f'Ultimo tiro: {int(angulo_liberacion)} grados', (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)
 
-    if angulo_rodilla > 170:
-        texto_feedback = "¡FLEXIONA MAS LAS RODILLAS!"
-        color_feedback = (0, 0, 255) 
-    elif angulo_rodilla > 150:
-        texto_feedback = "¡BUENA FLEXION!"
-        color_feedback = (0, 255, 255)
-    else:
-        texto_feedback = "PREPARANDO TIRO..."
-        color_feedback = (0, 255, 255)
-
-    cv2.putText(frame, texto_feedback, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color_feedback, 2)
+    color_msg = (0, 255, 0) if mensaje_postura == "Postura OK" else (0, 0, 255)
+    cv2.putText(frame, mensaje_postura, (30, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color_msg, 2)
 
     return frame
-
-def detectar_balon(frame):
-    return 320, 240
 
 while True:
     ret, frame = camara.read()
@@ -110,13 +130,9 @@ while True:
     if resultados.pose_landmarks:
         frame = analizar_postura(frame, resultados)
 
-    bx, by = detectar_balon(frame)
-    cv2.circle(frame, (bx, by), 12, (0, 165, 255), cv2.FILLED)
-
-    # quite el contador de frames para limpiar mas la pantalla.
     cv2.imshow("HoopCoach AI", frame)
 
-    if cv2.waitKey(1) == ord('q'):
+    if cv2.waitKey(1) == ord ('q'):
         break
 
 camara.release()
