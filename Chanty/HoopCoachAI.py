@@ -15,19 +15,20 @@ angulo_liberacion = 0
 historial_angulos = []
 tiempo_ultimo_tiro = 0
 mensaje_mostrado = True
-mensaje_postura = ""
+lista_mensajes_postura = []
 fase_actual_texto = "Fase: Esperando..."
 
 CONSEJOS = {
     "rodilla": "Flexiona mas las rodillas",
-    "codo": "Ajusta el codo (entre 80 y  110 grados)",
+    "codo": "Ajusta el codo (entre 80 y 110 grados)",
     "espalda": "Sube mas el brazo antes de tirar",
+    "hombro": "Ajusta la altura del brazo (entre 70 y 100 grados)",
 }
 
 def calcular_angulo(a, b, c):
     angulo = math.degrees(
         math.atan2(c.y - b.y, c.x - b.x) -
-        math.atan2(a.y, a.x - b.x)
+        math.atan2(a.y - b.y, a.x - b.x)
     )
     angulo = abs(angulo)
     if angulo > 180:
@@ -36,7 +37,7 @@ def calcular_angulo(a, b, c):
 
 def analizar_postura(frame, resultados):
     global estado_tiro, tiempo_ultimo_tiro, angulo_liberacion
-    global historial_angulos, mensaje_mostrado, mensaje_postura
+    global historial_angulos, mensaje_mostrado, lista_mensajes_postura
     global fase_actual_texto
 
     mp_dibujo.draw_landmarks(frame, resultados.pose_landmarks, mp_pose.POSE_CONNECTIONS)
@@ -60,7 +61,7 @@ def analizar_postura(frame, resultados):
     angulo_espalda = calcular_angulo(rodilla, cadera, hombro)
     angulo_hombro = calcular_angulo(cadera, hombro, codo)
 
-    h, w, _ = frame.shape 
+    h, w, _ = frame.shape
     cx, cy = int(muneca.x * w), int(muneca.y * h)
 
     rodilla_ok = 150 <= angulo_rodilla <= 170
@@ -70,15 +71,15 @@ def analizar_postura(frame, resultados):
     postura_valida = rodilla_ok and codo_ok and espalda_ok and hombro_ok
 
     fallos = []
-    if  not rodilla_ok: fallos.append("rodilla")
+    if not rodilla_ok: fallos.append("rodilla")
     if not codo_ok: fallos.append("codo")
     if not espalda_ok: fallos.append("espalda")
     if not hombro_ok: fallos.append("hombro")
 
     if postura_valida:
-        mensaje_postura = "Postura OK"
+        lista_mensajes_postura = ["Postura OK"]
     else:
-        mensaje_postura = " | ".join(CONSEJOS[f] for f in fallos)
+        lista_mensajes_postura = [CONSEJOS[f] for f in fallos]
 
     # FASE 0 (Preparacion)
     if estado_tiro == 0:
@@ -110,8 +111,11 @@ def analizar_postura(frame, resultados):
     cv2.circle(frame, (cx, cy), 15, (255, 0, 0), cv2.FILLED)
     cv2.putText(frame, f'Ultimo tiro: {int(angulo_liberacion)} grados', (30, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
     cv2.putText(frame, fase_actual_texto, (30, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
-    color_msg = (0, 255, 0) if mensaje_postura == "Postura OK" else (0, 0, 255)
-    cv2.putText(frame, mensaje_postura, (30, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color_msg, 2)
+
+    color_msg = (0, 255, 0) if lista_mensajes_postura == ["Postura OK"] else (0, 0, 255)
+    for i, msg in enumerate(lista_mensajes_postura):
+        cv2.putText(frame, msg, (30, 100 + i * 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color_msg, 2)
+
     return frame
 
 cv2.namedWindow("HoopCoach AI", cv2.WINDOW_NORMAL)
