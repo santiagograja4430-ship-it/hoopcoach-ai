@@ -1,0 +1,8 @@
+Chanty/Lib/
+Chanty/Scripts/
+Chanty/share/
+Chanty/Include/
+Chanty/pyvenv.cfg
+
+__pycache__/
+*.pyc

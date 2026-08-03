@@ -7,14 +7,19 @@ mp_pose = mp.solutions.pose
 pose = mp_pose.Pose(model_complexity=1)
 mp_dibujo = mp.solutions.drawing_utils
 
-camara = cv2.VideoCapture(0)
+camara = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 camara.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
+if not camara.isOpened():
+    print("No se pudo abrir la cámara.")
+    exit()
 
 estado_tiro = 0
 angulo_liberacion = 0
 repeticiones_correctas = 0
 postura_ok_ciclo = True
 tiempo_ultimo_tiro = 0
+tiempo_inicio_fase = time.time()
 fase_actual_texto = "Fase: Esperando..."
 
 CONSEJOS = {
@@ -38,8 +43,12 @@ def dibujar_metrica(frame, nombre, valor, esta_ok, y):
     cv2.putText(frame, f'{nombre}: {int(valor)}', (30, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
 def analizar_postura(frame, resultados):
-    global estado_tiro, tiempo_ultimo_tiro, angulo_liberacion
-    global repeticiones_correctas, postura_ok_ciclo
+    global estado_tiro
+    global tiempo_ultimo_tiro
+    global tiempo_inicio_fase
+    global angulo_liberacion
+    global repeticiones_correctas
+    global postura_ok_ciclo
     global fase_actual_texto
 
     mp_dibujo.draw_landmarks(frame, resultados.pose_landmarks, mp_pose.POSE_CONNECTIONS)
@@ -82,23 +91,36 @@ def analizar_postura(frame, resultados):
     if not hombro_ok:
         fallos.append("hombro")
 
+    if estado_tiro != 0:
+        if time.time() - tiempo_inicio_fase > 3:
+            estado_tiro = 0
+            postura_ok_ciclo = True
+            tiempo_inicio_fase = time.time()
+            fase_actual_texto = "Fase 0: Timeout"
+
     if estado_tiro == 0:
+
         fase_actual_texto = "Fase 0: Preparación"
 
         if angulo_rodilla < 165 and muneca.y > hombro.y:
             estado_tiro = 1
+            tiempo_inicio_fase = time.time()
 
     elif estado_tiro == 1:
+
         fase_actual_texto = "Fase 1: Set Point"
 
         if muneca.y < hombro.y and 60 <= angulo_codo <= 125:
             estado_tiro = 2
+            tiempo_inicio_fase = time.time()
 
         elif muneca.y > cadera.y:
             estado_tiro = 0
             postura_ok_ciclo = True
+            tiempo_inicio_fase = time.time()
 
     elif estado_tiro == 2:
+
         fase_actual_texto = "Fase 2: Release (Tiro!)"
 
         if angulo_codo > 140 and muneca.y < hombro.y:
@@ -116,27 +138,37 @@ def analizar_postura(frame, resultados):
                 tiempo_ultimo_tiro = time.time()
                 estado_tiro = 0
                 postura_ok_ciclo = True
+                tiempo_inicio_fase = time.time()        
 
         elif muneca.y > hombro.y:
             estado_tiro = 0
             postura_ok_ciclo = True
+            tiempo_inicio_fase = time.time()
 
     cv2.circle(frame, (cx, cy), 15, (255, 0, 0), cv2.FILLED)
-    cv2.putText(frame, f"Repeticiones OK: {repeticiones_correctas}", (30, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
-    cv2.putText(frame, fase_actual_texto, (30, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+
+    cv2.putText(frame, f"Repeticiones OK: {repeticiones_correctas}", (30, 40),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
+
+    cv2.putText(frame, fase_actual_texto, (30, 70),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
     dibujar_metrica(frame, "Rodilla", angulo_rodilla, rodilla_ok, 100)
     dibujar_metrica(frame, "Espalda", angulo_espalda, espalda_ok, 130)
     dibujar_metrica(frame, "Hombro", angulo_hombro, hombro_ok, 160)
 
-    cv2.putText(frame, f"Codo (informativo): {int(angulo_codo)}", (30, 190), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 2)
+    cv2.putText(frame, f"Codo (informativo): {int(angulo_codo)}", (30, 190),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 2)
 
     y_consejo = 220
-    for f in fallos:
-        cv2.putText(frame, CONSEJOS[f], (30, y_consejo), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 255), 2)
+
+    for fallo in fallos:
+        cv2.putText(frame, CONSEJOS[fallo], (30, y_consejo),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 255), 2)
         y_consejo += 25
 
     return frame
+
 
 cv2.namedWindow("HoopCoach AI", cv2.WINDOW_NORMAL)
 cv2.resizeWindow("HoopCoach AI", 960, 540)
@@ -156,7 +188,7 @@ while True:
 
     cv2.imshow("HoopCoach AI", frame)
 
-    if cv2.waitKey(1) == ord('q'):
+    if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
 camara.release()
