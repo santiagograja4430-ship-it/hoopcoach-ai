@@ -24,6 +24,11 @@ tiempo_inicio_fase = time.time()
 tiempo_inicio_sesion = time.time()
 fase_actual_texto = "Fase: Esperando..."
 
+puntaje_actual = 100
+historial_puntajes = []
+tiempo_frame_anterior = time.time()
+PENALIZACION_POR_SEGUNDO = 15
+
 CONSEJOS = {
     "rodilla": "Flexiona mas las rodillas",
     "espalda": "Sube mas el brazo antes de tirar",
@@ -55,6 +60,13 @@ def analizar_postura(frame, resultados):
     global tiros_intentados
     global postura_ok_ciclo
     global fase_actual_texto
+    global puntaje_actual
+    global historial_puntajes
+    global tiempo_frame_anterior
+
+    ahora = time.time()
+    dt = ahora - tiempo_frame_anterior
+    tiempo_frame_anterior = ahora
 
     mp_dibujo.draw_landmarks(
         frame,
@@ -100,6 +112,16 @@ def analizar_postura(frame, resultados):
     if not hombro_ok:
         fallos.append("hombro")
 
+    # Penalizacion del puntaje: solo mientras hay un lanzamiento en curso (fase 1 o 2)
+    if estado_tiro != 0:
+        if not rodilla_ok:
+            puntaje_actual -= PENALIZACION_POR_SEGUNDO * dt
+        if not espalda_ok:
+            puntaje_actual -= PENALIZACION_POR_SEGUNDO * dt
+        if not hombro_ok:
+            puntaje_actual -= PENALIZACION_POR_SEGUNDO * dt
+        puntaje_actual = max(0, puntaje_actual)
+
     if estado_tiro != 0:
         if time.time() - tiempo_inicio_fase > 3:
             estado_tiro = 0
@@ -114,6 +136,7 @@ def analizar_postura(frame, resultados):
         if angulo_rodilla < 165 and muneca.y > hombro.y:
             estado_tiro = 1
             tiempo_inicio_fase = time.time()
+            puntaje_actual = 100
 
     elif estado_tiro == 1:
 
@@ -137,14 +160,16 @@ def analizar_postura(frame, resultados):
             if (time.time() - tiempo_ultimo_tiro) > 1.0:
 
                 angulo_liberacion = angulo_codo
-
                 tiros_intentados += 1
+                historial_puntajes.append(round(puntaje_actual))
 
                 if postura_ok_ciclo:
                     repeticiones_correctas += 1
                     print("Repetición completada con buena forma")
                 else:
                     print("Repetición completada, pero con errores de postura")
+
+                print(f"Puntaje del lanzamiento: {round(puntaje_actual)}/100")
 
                 tiempo_ultimo_tiro = time.time()
                 estado_tiro = 0
@@ -161,6 +186,8 @@ def analizar_postura(frame, resultados):
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
     cv2.putText(frame, fase_actual_texto, (30, 70),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+    cv2.putText(frame, f"Puntaje actual: {round(puntaje_actual)}/100", (30, 250),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
 
     dibujar_metrica(frame, "Rodilla", angulo_rodilla, rodilla_ok, 100)
     dibujar_metrica(frame, "Espalda", angulo_espalda, espalda_ok, 130)
@@ -210,8 +237,21 @@ if tiros_intentados > 0:
 else:
     porcentaje = 0
 
+if historial_puntajes:
+    promedio_puntaje = sum(historial_puntajes) / len(historial_puntajes)
+    mejor_puntaje = max(historial_puntajes)
+    peor_puntaje = min(historial_puntajes)
+else:
+    promedio_puntaje = 0
+    mejor_puntaje = 0
+    peor_puntaje = 0
+
 print("\n--- RESUMEN DE LA SESIÓN ---")
 print(f"Tiempo entrenando: {tiempo_total} segundos")
 print(f"Tiros intentados: {tiros_intentados}")
 print(f"Tiros correctos: {repeticiones_correctas}")
 print(f"Porcentaje de buena técnica: {porcentaje:.1f}%")
+print(f"Puntaje promedio: {promedio_puntaje:.1f}/100")
+print(f"Mejor lanzamiento: {mejor_puntaje}/100")
+print(f"Peor lanzamiento: {peor_puntaje}/100")
+print(f"Total de lanzamientos evaluados: {len(historial_puntajes)}")
