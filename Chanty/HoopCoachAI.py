@@ -17,9 +17,11 @@ if not camara.isOpened():
 estado_tiro = 0
 angulo_liberacion = 0
 repeticiones_correctas = 0
+tiros_intentados = 0
 postura_ok_ciclo = True
 tiempo_ultimo_tiro = 0
 tiempo_inicio_fase = time.time()
+tiempo_inicio_sesion = time.time()
 fase_actual_texto = "Fase: Esperando..."
 
 CONSEJOS = {
@@ -40,18 +42,25 @@ def calcular_angulo(a, b, c):
 
 def dibujar_metrica(frame, nombre, valor, esta_ok, y):
     color = (0, 255, 0) if esta_ok else (0, 0, 255)
-    cv2.putText(frame, f'{nombre}: {int(valor)}', (30, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+    cv2.putText(frame, f"{nombre}: {int(valor)}", (30, y),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
 def analizar_postura(frame, resultados):
+
     global estado_tiro
     global tiempo_ultimo_tiro
     global tiempo_inicio_fase
     global angulo_liberacion
     global repeticiones_correctas
+    global tiros_intentados
     global postura_ok_ciclo
     global fase_actual_texto
 
-    mp_dibujo.draw_landmarks(frame, resultados.pose_landmarks, mp_pose.POSE_CONNECTIONS)
+    mp_dibujo.draw_landmarks(
+        frame,
+        resultados.pose_landmarks,
+        mp_pose.POSE_CONNECTIONS
+    )
 
     muneca = resultados.pose_landmarks.landmark[16]
     codo = resultados.pose_landmarks.landmark[14]
@@ -129,6 +138,8 @@ def analizar_postura(frame, resultados):
 
                 angulo_liberacion = angulo_codo
 
+                tiros_intentados += 1
+
                 if postura_ok_ciclo:
                     repeticiones_correctas += 1
                     print("Repetición completada con buena forma")
@@ -138,7 +149,7 @@ def analizar_postura(frame, resultados):
                 tiempo_ultimo_tiro = time.time()
                 estado_tiro = 0
                 postura_ok_ciclo = True
-                tiempo_inicio_fase = time.time()        
+                tiempo_inicio_fase = time.time()
 
         elif muneca.y > hombro.y:
             estado_tiro = 0
@@ -146,10 +157,8 @@ def analizar_postura(frame, resultados):
             tiempo_inicio_fase = time.time()
 
     cv2.circle(frame, (cx, cy), 15, (255, 0, 0), cv2.FILLED)
-
     cv2.putText(frame, f"Repeticiones OK: {repeticiones_correctas}", (30, 40),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
-
     cv2.putText(frame, fase_actual_texto, (30, 70),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
@@ -194,5 +203,15 @@ while True:
 camara.release()
 cv2.destroyAllWindows()
 
-print("\n--- RESUMEN DE LA SESION ---")
-print(f"Repeticiones completadas con buena forma: {repeticiones_correctas}")
+tiempo_total = int(time.time() - tiempo_inicio_sesion)
+
+if tiros_intentados > 0:
+    porcentaje = (repeticiones_correctas / tiros_intentados) * 100
+else:
+    porcentaje = 0
+
+print("\n--- RESUMEN DE LA SESIÓN ---")
+print(f"Tiempo entrenando: {tiempo_total} segundos")
+print(f"Tiros intentados: {tiros_intentados}")
+print(f"Tiros correctos: {repeticiones_correctas}")
+print(f"Porcentaje de buena técnica: {porcentaje:.1f}%")
