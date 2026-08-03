@@ -46,7 +46,7 @@ while True:
 
         posicion_anterior = centro_actual
     else: 
-        posicion_anterior = None
+        pass
 
     puntos_trayectoria.append(centro_actual)
     if len(puntos_trayectoria) > 15:
