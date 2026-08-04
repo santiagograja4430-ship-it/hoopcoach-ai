@@ -9,7 +9,9 @@ computer vision tool that helps basketball players improve their shooting techni
 
 ![demo](IMAGES/Nombre.png)
 
-informacion tuya nombre del slack  edad y tin 
+Hi, I’m Chanty_30, and I created **Hoop Coach AI** as a project for Hack Club’s Macondo program. My goal is to build a tool for basketball players to help them improve their performance and shooting mechanics.
+
+You can find me on the Hack Club Slack as: `@Chanty_30`
 
 </p>
 
