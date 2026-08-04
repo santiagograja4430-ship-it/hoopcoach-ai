@@ -1,13 +1,15 @@
 import cv2
 import math
 import time
+from pathlib import Path
 from ultralytics import YOLO
 
 # ===============================
 # Modelo YOLO
 # ===============================
 
-model = YOLO("yolo11n.pt")
+MODEL_PATH = Path(__file__).parent / "yolo11n.pt"
+model = YOLO(str(MODEL_PATH))
 
 # ===============================
 # Variables globales
