@@ -9,9 +9,9 @@ Computer vision tool that helps basketball players improve their shooting techni
 </h2> 
 <p>
 
-Hi, I’m Chanty_30 and Jerogonzax15, and I created **Hoop Coach AI** as a project for Hack Club’s Macondo program. My goal is to build a tool for basketball players to help them improve their performance and shooting mechanics.
+Hi, I’m Chanty_30 and Jerogonzax15, and we created **Hoop Coach AI** as a project for Hack Club’s Macondo program. My goal is to build a tool for basketball players to help them improve their performance and shooting mechanics.
 
-You can find us on the Hack Club Slack as: `@Chanty_30` `Jerogonzax15`
+You can find us on the Hack Club Slack as: `@Chanty_30` `@Jerogonzax15`
 
 HoopCoach AI is a Python-based virtual basketball coach that uses Computer Vision and Artificial Intelligence to analyze player performance. The system captures real-time video through a webcam, detects and tracks the basketball using the YOLO object detection model, and evaluates its trajectory, speed, and movement to assist players during training and improve their shooting performance.
 
