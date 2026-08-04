@@ -25,6 +25,7 @@ HoopCoach AI is a Python-based virtual basketball coach that uses Computer Visio
 | OpenCV | Video capture and processing |
 | MediaPipe  | body detection |
 | NumPy | Numerical processing |
+| YOLO | Object detection |
 
 ## Download the program
 
