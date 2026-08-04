@@ -1,8 +1,14 @@
-Chanty/Lib/
-Chanty/Scripts/
-Chanty/share/
-Chanty/Include/
-Chanty/pyvenv.cfg
+# Entorno virtual
+Chanty/
 
+# Carpetas generadas por PyInstaller
+build/
+dist/
+
+# Caché de Python
 __pycache__/
 *.pyc
+
+# Archivos temporales
+*.log
+*.tmp
