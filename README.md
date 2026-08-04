@@ -7,7 +7,7 @@
 </h2> 
 <p>
 
-![demo]()
+![demo](IMAGES/Captura de pantalla 2026-04-08 141946.png)
 
 informacion tuya nombre del slack  edad y tin 
 
