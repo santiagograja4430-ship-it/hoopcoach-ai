@@ -32,3 +32,12 @@ HoopCoach AI is a Python-based virtual basketball coach that uses Computer Visio
 You can download the executable version for Windows from the releases section:
 
 [**Download HOOPCOACH-AI**](https://github.com/santiagograja4430-ship-it/hoopcoach-ai/releases/tag/v1.0.0)
+
+### Usage Instructions
+
+1. Download Hoop Coach AI-Windows-v1.0.zip.
+2. Extract the folder completely.
+3. Open the Hoop Coach AI folder.
+4. Run HoopCoachAI.exe.
+
+> the executable must remain alongside the _internal folder and the other included files. If the folder is deleted, the executable will not work.
