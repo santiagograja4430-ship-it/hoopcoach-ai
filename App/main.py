@@ -1,3 +1,8 @@
+import os
+
+os.system("title HoopCoach AI")
+print("Iniciando HoopCoach AI...")
+
 from HoopCoach_AI import iniciar_entrenamiento
 from Balon_AI import iniciar_deteccion_balon
 
