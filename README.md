@@ -3,7 +3,7 @@
     
 </p>
 <h2 align="center">
- We are building a computer vision tool that helps basketball players improve their shooting technique using only a smartphone camera. By employing pose estimation and ball tracking, it analyzes shooting mechanics—such as arm angle, knee flexion, and release angle—and logs makes, misses, and shot locations during solo practice. While most similar tools (like HomeCourt or Noah) are apps that simply track performance during individual workouts, the tool I am developing differs significantly; notably, it helps you correct specific aspects of your shooting mechanics.
+computer vision tool that helps basketball players improve their shooting technique
 </h2> 
 <p>
 
