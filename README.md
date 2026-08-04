@@ -1,13 +1,13 @@
 # Hoopcoach-ai
 <p align ="center">
+
+![demo](IMAGES/Nombre.png)
     
 </p>
 <h2 align="center">
-computer vision tool that helps basketball players improve their shooting technique
+Computer vision tool that helps basketball players improve their shooting technique
 </h2> 
 <p>
-
-![demo](IMAGES/Nombre.png)
 
 Hi, I’m Chanty_30, and I created **Hoop Coach AI** as a project for Hack Club’s Macondo program. My goal is to build a tool for basketball players to help them improve their performance and shooting mechanics.
 
