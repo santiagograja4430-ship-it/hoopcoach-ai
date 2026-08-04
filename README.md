@@ -80,7 +80,7 @@ The project is still under development, and future versions will include:
 - Performance statistics and training reports.
 
 <p align="center">
-    <img src="IMAGES/demo.png" width="500">
+    <img src="IMAGES/Nombre2.png" width="500">
 </p>
 
 # License
