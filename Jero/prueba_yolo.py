@@ -19,6 +19,8 @@ puntos_trayectoria = []
 posicion_anterior = None
 tiempo_anterior = time.time()
 velocidad = 0.0
+velocidad_maxima = 0.0
+mensaje_analisis = "Esperando tiro..."
 apice_x = None
 apice_y = float('inf')
 tiro_en_progreso = False
@@ -53,6 +55,16 @@ while True:
         if centro_y < apice_y:
             apice_y = centro_y
             apice_x = centro_x
+
+        if centro_y > (apice_y + 60) and not tiro_en_progreso: 
+            tiro_en_progreso = True 
+
+            if apice_y < 180: 
+                mensaje_analisis = "¡Excelente Arco!"
+            elif apice_y < 280:
+                mensaje_analisis = "Arco medio"
+            else:
+                mensaje_analisis = "Tiro muy plano"
             
 
         medicion = np.array([[np.float32(centro_x)], [np.float32(centro_y)]])
@@ -84,8 +96,14 @@ while True:
             continue
         cv2.line(annotated_frame, puntos_trayectoria[i - 1], puntos_trayectoria[i], (0, 0, 255), 3)
 
-    cv2.putText(annotated_frame, f"Velocidad: {velocidad: .1f} km/h", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+    if velocidad > velocidad_maxima:
+        velocidad_maxima = velocidad
 
+    cv2.rectangle(annotated_frame, (10, 10), (320, 85), (0, 0, 0), -1)
+
+    cv2.putText(annotated_frame, f"Vel. Actual: {velocidad:.1f} km/h", (20, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+    cv2.putText(annotated_frame, f"Vel. maxima: {velocidad_maxima:.1f} km/h", (20, 65), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 225, 0), 2)
+  
     if apice_x is not None and apice_y != float('inf'):
         cv2.circle(annotated_frame, (apice_x, apice_y), 8, (0, 255, 255), -1)
         cv2.putText(annotated_frame, "APICE", (apice_x - 20, apice_y -15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
