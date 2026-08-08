@@ -1,11 +1,15 @@
+import os
 import cv2
-import mediapipe as mp
 import math
 import time
+import mediapipe as mp
 
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose(model_complexity=1)
 mp_dibujo = mp.solutions.drawing_utils
+
+# Carpeta para guardar las capturas de errores
+CARPETA_ERRORES = "errores"
 
 camara = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 camara.set(cv2.CAP_PROP_BUFFERSIZE, 1)
@@ -36,6 +40,7 @@ CONSEJOS = {
     "perfecto": "¡Excelente técnica de lanzamiento!"
 }
 
+
 def calcular_angulo(a, b, c):
     angulo = math.degrees(
         math.atan2(c.y - b.y, c.x - b.x) -
@@ -45,6 +50,7 @@ def calcular_angulo(a, b, c):
     if angulo > 180:
         angulo = 360 - angulo
     return angulo
+
 
 def dibujar_hud(frame, estado_fase, repeticiones, total_tiros, puntaje, consejo=""):
     h, w, _ = frame.shape
@@ -75,6 +81,7 @@ def dibujar_hud(frame, estado_fase, repeticiones, total_tiros, puntaje, consejo=
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, color_consejo, 2, cv2.LINE_AA)
 
     return frame
+
 
 def analizar_postura(frame, resultados=None):
     global estado_tiro
@@ -123,6 +130,8 @@ def analizar_postura(frame, resultados=None):
     angulo_hombro = calcular_angulo(cadera, hombro, codo)
 
     ahora = time.time()
+    guardar_foto_error = False
+    tipo_error = "postura"
 
     if estado_tiro == 0:
         fase_actual_texto = "Listo para tirar"
@@ -170,6 +179,8 @@ def analizar_postura(frame, resultados=None):
                 ultimo_consejo = CONSEJOS["perfecto"]
             else:
                 ultimo_consejo = CONSEJOS[fallos[0]] if fallos else ""
+                guardar_foto_error = True
+                tipo_error = fallos[0] if fallos else "postura"
 
             tiempo_fin_tiro = ahora
             estado_tiro = 2
@@ -188,7 +199,16 @@ def analizar_postura(frame, resultados=None):
         ultimo_consejo
     )
 
+    # Si hubo error, guarda la foto incluyendo la interfaz y el esqueleto
+    if guardar_foto_error:
+        os.makedirs(CARPETA_ERRORES, exist_ok=True)
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        nombre_archivo = os.path.join(CARPETA_ERRORES, f"error_{tipo_error}_{timestamp}.jpg")
+        cv2.imwrite(nombre_archivo, frame)
+        print(f"📸 Foto guardada en {CARPETA_ERRORES}/: {nombre_archivo}")
+
     return frame
+
 
 cv2.namedWindow("HoopCoach AI", cv2.WINDOW_NORMAL)
 cv2.resizeWindow("HoopCoach AI", 960, 540)
